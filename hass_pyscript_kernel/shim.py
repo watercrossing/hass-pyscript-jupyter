@@ -14,6 +14,7 @@ import asyncio
 from asyncio.streams import StreamReader, StreamWriter
 import configparser
 import json
+import os
 from pathlib import Path
 import secrets
 import sys
@@ -52,7 +53,19 @@ def load_config(kernel_name) -> None:
         )
         sys.exit(1)
 
-    config_path = Path(kernels[kernel_name], CONFIG_NAME)
+    env_config_path = os.environ.get("HASS_PYSCRIPT_CONFIG")
+    cwd_config_path = Path.cwd() / CONFIG_NAME
+    default_config_path = Path(kernels[kernel_name], CONFIG_NAME)
+
+    if env_config_path is not None:
+        config_path = Path(env_config_path)
+        if not config_path.is_file():
+            print(f"{PKG_NAME}: config file from HASS_PYSCRIPT_CONFIG not found: {config_path}")
+            sys.exit(1)
+    elif cwd_config_path.is_file():
+        config_path = cwd_config_path
+    else:
+        config_path = default_config_path
 
     parser_conf = configparser.ConfigParser(
         defaults=CONFIG_DEFAULTS,
